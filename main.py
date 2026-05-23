@@ -9,20 +9,28 @@ turn = 0
 currentSwitch = 0
 currentRound = 0
 currSimStep = 0
-turnsPerSwitch = 10
-switchesPerRound = 10
+
+# How many cells do players get to put down each time it is their turn
+turnsPerSwitch = 20
+# How many times do you cycle through players before doing a simulation round
+switchesPerRound = 1
+# How many simuilation rounds do you have before the game ends
 roundsPerGame = 5
+# How long do you run the simulation for each sim step
 simStepsPerRound = 50
 
 headerSize = 50
 cellMargin = 1
-playerCount = 5
+# How many people are playing
+playerCount = 2
 currentPlayer = 1
 borderWidth = 10
 colors = [(255,255,255)]
 mouseDown = False
 finished = False
 simFinished = False
+# Do opponents take other players resources
+aggressivePlayers = False
 for color in distinctipy.get_colors(playerCount):
     colors.append((int(color[0] * 255), int(color[1] * 255), int(color[2] * 255)))
 
@@ -51,24 +59,30 @@ def stepBoard(gameBoard):
     for x in range(gridDim):
         for y in range(gridDim):
             cell = gameBoard[x][y]
-            if cell != 0:
-                playerScores[cell - 1] += 1
             if cell == 0:
                 capturingPlayer = 0
                 for i in range(1, playerCount+1):
-                    if getCellResources(x, y, i) == 3:
+                    cellResources = 0
+                    if aggressivePlayers:
+                        cellResources = getCellResourcesAggresive(x, y, i)
+                    else:
+                        cellResources = getCellResources(x, y, i)
+                    if cellResources == 3:
                         if capturingPlayer:
                             capturingPlayer = 0
                             break
                         else:
                             capturingPlayer = i
                 newBoard[x][y] = capturingPlayer
+                if capturingPlayer != 0:
+                    playerScores[capturingPlayer -1 ] += 1
             else:
-                cellResources = getCellResources(x, y, cell)
+                cellResources = getCellResourcesAggresive(x, y, cell) if aggressivePlayers else getCellResources(x, y, cell)
                 if cellResources > 3:
                     newBoard[x][y] = 0
                 if cellResources == 3 or cellResources == 2:
                     newBoard[x][y] = cell
+                    playerScores[cell - 1] += 1
                 if cellResources < 2:
                     newBoard[x][y] = 0
     return newBoard, playerScores
@@ -82,6 +96,17 @@ def getCellResources(x, y, player):
     resources += 0 if x == 0 or y == gridDim-1 or gameBoard[x-1][y+1] != player else 1
     resources += 0 if y == gridDim-1 or gameBoard[x][y+1] != player else 1
     resources += 0 if x == gridDim-1 or y == gridDim-1 or gameBoard[x+1][y+1] != player else 1
+    return resources
+
+def getCellResourcesAggresive(x, y, player):
+    resources = 0 if x == 0 or y == 0 or gameBoard[x-1][y-1] == 0 else -1 if gameBoard[x-1][y-1] != player else 1 
+    resources += 0 if y == 0 or gameBoard[x][y-1] == 0 else -1 if gameBoard[x][y-1] != player else 1
+    resources += 0 if x == gridDim-1 or y == 0 or gameBoard[x+1][y-1] == 0 else -1 if gameBoard[x+1][y-1] != player else 1
+    resources += 0 if x == 0 or gameBoard[x-1][y] == 0 else -1 if gameBoard[x-1][y] != player else 1
+    resources += 0 if x == gridDim-1 or gameBoard[x+1][y] == 0 else -1 if gameBoard[x+1][y] != player else 1
+    resources += 0 if x == 0 or y == gridDim-1 or gameBoard[x-1][y+1] == 0 else -1 if gameBoard[x-1][y+1] != player else 1
+    resources += 0 if y == gridDim-1 or gameBoard[x][y+1] == 0 else -1 if gameBoard[x][y+1] != player else 1
+    resources += 0 if x == gridDim-1 or y == gridDim-1 or gameBoard[x+1][y+1] == 0 else -1 if gameBoard[x+1][y+1] == 0 else 1
     return resources
 
 def getPlayerScores():
